@@ -79,6 +79,7 @@ def gpio_callback(channel):
     global tracker
     if not GPIO.input(GPIO_PIN):
         return
+    logger.warning('Event Detected')
     tracker.record_event()
 
 
