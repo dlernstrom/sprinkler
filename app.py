@@ -18,7 +18,7 @@ ROOT_LOGGER.addHandler(logging.NullHandler())
 
 SYS_CTL_LOG_FMT = '%(asctime)s %(name)-30s %(filename)-28s [%(lineno)-4d] %(levelname)-7s %(message)s'
 SYSCTL_HANDLER = logging.StreamHandler(sys.stdout)
-SYSCTL_HANDLER.setLevel(logging.INFO)
+SYSCTL_HANDLER.setLevel(logging.DEBUG)
 SYSCTL_HANDLER.setFormatter(logging.Formatter(SYS_CTL_LOG_FMT))
 ROOT_LOGGER.addHandler(SYSCTL_HANDLER)
 
