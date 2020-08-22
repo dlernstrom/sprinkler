@@ -26,6 +26,12 @@ logger = logging.getLogger(__name__)
 sys.path.insert(0, ROOT_DIR)
 
 
+def min_to_time_str(minutes):
+    hours_remaining = minutes // 60
+    min_frac_remaining = int(minutes - hours_remaining * 60.0)
+    return '%02d:%02d' % (hours_remaining, min_frac_remaining)
+
+
 class Tracker:
     def __init__(self, gallons_allowed, zones_used):
         self.numato = Numato(NUMATO_IP, NUMATO_USER, NUMATO_PASS)
@@ -51,22 +57,25 @@ class Tracker:
         self.start_time = this_time
         gps = GALLONS_PER_CLICK / elapsed
         gpm = gps * 60
-        gallons_remaining = self.gallons_allowed - self.gallons_used
-        minutes_remaining = gallons_remaining / gpm
-        hours_remaining = minutes_remaining // 60
-        min_frac_remaining = minutes_remaining - hours_remaining * 60
-        logger.debug(f"GPIO Water Meter Event! - %f gpm - elapsed time: %f, %02d:%02d remain",
-                     gpm, elapsed, hours_remaining, min_frac_remaining)
-        self.potentially_change_zones()
-
-    def potentially_change_zones(self):
-        current_zone_change_point = (self.current_zone + 1) * self.gallons_per_zone
-        if self.gallons_used > current_zone_change_point:
-            logger.warning('Changing Zones, moving from zone %d to zone %d', self.current_zone, self.current_zone + 1)
-            logger.warning('%d gallons left', self.gallons_allowed - self.gallons_used)
+        logger.debug(
+            "GPIO Water Meter Event! - %f gpm, %s zone remain, %s total remain",
+            gpm, min_to_time_str(self.zone_gallons_remaining / gpm), min_to_time_str(self.total_gallons_remaining / gpm)
+        )
+        if self.zone_gallons_remaining == 0:
             self.change_zones()
 
+    @property
+    def total_gallons_remaining(self):
+        return max(self.gallons_allowed - self.gallons_used, 0)
+
+    @property
+    def zone_gallons_remaining(self):
+        current_zone_change_point = (self.current_zone + 1) * self.gallons_per_zone
+        return max(current_zone_change_point - self.gallons_used, 0)
+
     def change_zones(self):
+        logger.warning('Changing Zones, moving from zone %d to zone %d', self.current_zone, self.current_zone + 1)
+        logger.warning('%d gallons left', self.gallons_allowed - self.gallons_used)
         self.numato.relay_off(self.zones_used[self.current_zone])
         self.current_zone += 1
         self.numato.relay_on(self.zones_used[self.current_zone])
