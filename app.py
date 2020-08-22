@@ -51,12 +51,19 @@ class Tracker:
         self.start_time = this_time
         gps = GALLONS_PER_CLICK / elapsed
         gpm = gps * 60
-        logger.debug(f"GPIO Water Meter Event! - {gpm} gpm - elapsed time: {elapsed}")
+        gallons_remaining = self.gallons_allowed - self.gallons_used
+        minutes_remaining = gallons_remaining / gpm
+        hours_remaining = minutes_remaining // 60
+        min_frac_remaining = minutes_remaining - hours_remaining * 60
+        logger.debug(f"GPIO Water Meter Event! - %f gpm - elapsed time: %f, %02d:%02d remain",
+                     gpm, elapsed, hours_remaining, min_frac_remaining)
         self.potentially_change_zones()
 
     def potentially_change_zones(self):
         current_zone_change_point = (self.current_zone + 1) * self.gallons_per_zone
         if self.gallons_used > current_zone_change_point:
+            logger.warning('Changing Zones, moving from zone %d to zone %d', self.current_zone, self.current_zone + 1)
+            logger.warning('%d gallons left', self.gallons_allowed - self.gallons_used)
             self.change_zones()
 
     def change_zones(self):
@@ -91,6 +98,9 @@ def run_app():
         logger.warning('We get to water for %d gallons this turn', TURN_GALLONS_ALLOC)
         while tracker.current_zone < tracker.zone_count:
             time.sleep(0.5)
+    except KeyboardInterrupt:
+        tracker.shutdown()
+        raise
     finally:
         GPIO.cleanup()  # Clean up
 
