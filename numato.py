@@ -53,7 +53,9 @@ class Numato:
         self.telnet_obj.write(("relay on " + str(relay_number) + "\r\n").encode())
         print("Relay ON", relay_number)
         time.sleep(1)
-        self.telnet_obj.read_eager()
+        response = self.telnet_obj.read_eager()
+        readable_response = re.split(br'[&>]', response)[0].decode()
+        print("\nRelay read", relay_number, ":", readable_response)
         self.relay_read(relay_number)
 
     def relay_off(self, relay_number):
@@ -61,7 +63,9 @@ class Numato:
         self.telnet_obj.write(("relay off " + str(relay_number) + "\r\n").encode())
         print("Relay OFF", relay_number)
         time.sleep(1)
-        self.telnet_obj.read_eager()
+        response = self.telnet_obj.read_eager()
+        readable_response = re.split(br'[&>]', response)[0].decode()
+        print("\nRelay read", relay_number, ":", readable_response)
         self.relay_read(relay_number)
 
     def relay_read(self, relay_number):
