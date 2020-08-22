@@ -1,7 +1,7 @@
 #########################################################################################
 #   License                                                                             #
 #                                                                                       #
-#   Copyright © 2018, Numato Systems Private Limited. All rights reserved.              #
+#   Copyright (c) 2018, Numato Systems Private Limited. All rights reserved.              #
 #                                                                                       #
 #   This software including all supplied files, Intellectual Property, know-how         #
 #   Or part of thereof as applicable (collectively called SOFTWARE) in source           #
