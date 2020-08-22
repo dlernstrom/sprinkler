@@ -49,7 +49,7 @@ class Numato:
 
     def relay_on(self, relay_number):
         """Turns the relay on"""
-        relay_number = self.convert_relay_number(relay_number)
+        # relay_number = self.convert_relay_number(relay_number)
         self.telnet_obj.write(("relay on " + str(relay_number) + "\r\n").encode())
         print("Relay ON", relay_number)
         time.sleep(1)
