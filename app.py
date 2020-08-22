@@ -36,7 +36,7 @@ class Tracker:
         self.zones_used = zones_used
         self.zone_count = len(self.zones_used)
         self.current_zone = 0
-        self.gallons_per_zone = gallons_allowed / zones_used
+        self.gallons_per_zone = gallons_allowed / self.zone_count
 
         self.numato.relay_on(self.zones_used[self.current_zone])
 
