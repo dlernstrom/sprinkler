@@ -61,8 +61,10 @@ class Tracker:
             "GPIO Water Meter Event! - %f gpm, %s zone remain, %s total remain",
             gpm, min_to_time_str(self.zone_gallons_remaining / gpm), min_to_time_str(self.total_gallons_remaining / gpm)
         )
-        if self.zone_gallons_remaining == 0:
+        if self.zone_gallons_remaining == 0 and self.total_gallons_remaining > 0:
             self.change_zones()
+        elif self.total_gallons_remaining == 0:
+            logger.warning('Watering completed.  Total Gallons Remaining at Zero')
 
     @property
     def total_gallons_remaining(self):
@@ -88,7 +90,6 @@ def gpio_callback(channel):
     global tracker
     if not GPIO.input(GPIO_PIN):
         return
-    logger.warning('Event Detected')
     tracker.record_event()
 
 
