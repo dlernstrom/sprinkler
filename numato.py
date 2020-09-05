@@ -1,6 +1,18 @@
+"""Low level handler to the Numato relay device"""
+import logging
 import telnetlib
 import time
 import re
+
+logger = logging.getLogger(__name__)
+
+
+class NumatoError(Exception):
+    """Base class for all Numato thrown errors"""
+
+
+class LoginError(NumatoError):
+    """Thrown when we cannot log into device"""
 
 
 class Numato:
@@ -15,11 +27,11 @@ class Numato:
         """Connect to device with user provided credentials"""
         # Wait for login prompt from device and enter user name when prompted
         self.telnet_obj.read_until(b"login")
-        self.telnet_obj.write(self.username.encode('ascii') + b"\r\n")
+        self.telnet_obj.write(f'{self.username}\r\n'.encode())
 
         # Wait for password prompt and enter password when prompted by device
         self.telnet_obj.read_until(b"Password: ")
-        self.telnet_obj.write(self.password.encode('ascii') + b"\r\n")
+        self.telnet_obj.write(f'{self.password}\r\n'.encode())
 
         # Wait for device response
         log_result = self.telnet_obj.read_until(b"successfully\r\n")
@@ -27,14 +39,17 @@ class Numato:
 
         # Check if login attempt was successful
         if b"successfully" in log_result:
-            print("\nLogged in successfully... Connected to device", self.device_ip, "\n")
+            logger.info("Logged in successfully... Connected to device %s", self.device_ip)
             return True
-        elif "denied" in log_result:
-            print("Login failed!!!! Please check login credentials or Device IP Address\n\n")
-            return False
+        elif b"denied" in log_result:
+            logger.critical("Login failed!!!! Please check login credentials or Device IP Address")
+            raise LoginError('Problem logging into device')
+        raise NumatoError('Some other problem occurred during login')
 
     def shutdown(self):
+        """Disconnects the telnet object"""
         self.telnet_obj.close()
+        self.telnet_obj = None
 
     def flush_buffer(self):
         """Flush any data that may be left in the input buffer"""
@@ -47,32 +62,60 @@ class Numato:
             relay_number = relay_number.upper()
         return relay_number
 
+    def reconnect(self):
+        """Shutdown and reconnect, typically because we had a BrokenPipeError"""
+        logger.warning('Lost connection, reconnecting')
+        self.shutdown()
+        self.connect()
+
     def relay_on(self, relay_number):
+        """Turns the relay on, reconnecting if necessary"""
+        try:
+            self._relay_on(relay_number)
+        except BrokenPipeError:
+            self.reconnect()
+            self._relay_on(relay_number)
+
+    def _relay_on(self, relay_number):
         """Turns the relay on"""
         # relay_number = self.convert_relay_number(relay_number)
-        self.telnet_obj.write(("relay on " + str(relay_number) + "\r\n").encode())
-        print("Relay ON", relay_number)
-        time.sleep(1)
-        response = self.telnet_obj.read_eager()
-        readable_response = re.split(br'[&>]', response)[0].decode()
-        print("\nRelay read", relay_number, ":", readable_response)
+        logger.info('Turning relay ON: %s', relay_number)
+        readable_response = self._send_command_fetch_response(f'relay on {relay_number}\r\n')
+        logger.info('Command Response: [%s]', readable_response)
         self.relay_read(relay_number)
 
     def relay_off(self, relay_number):
+        """Turns the relay off, reconnecting if necessary"""
+        try:
+            self._relay_off(relay_number)
+        except BrokenPipeError:
+            self.reconnect()
+            self._relay_off(relay_number)
+
+    def _relay_off(self, relay_number):
         """Turns the relay off"""
-        self.telnet_obj.write(("relay off " + str(relay_number) + "\r\n").encode())
-        print("Relay OFF", relay_number)
-        time.sleep(1)
-        response = self.telnet_obj.read_eager()
-        readable_response = re.split(br'[&>]', response)[0].decode()
-        print("\nRelay read", relay_number, ":", readable_response)
+        logger.info('Turning relay OFF: %s', relay_number)
+        readable_response = self._send_command_fetch_response(f'relay off {relay_number}\r\n')
+        logger.info('Command Response: [%s]', readable_response)
         self.relay_read(relay_number)
 
     def relay_read(self, relay_number):
+        """Reads and returns the state of the relay, reconnecting if necessary"""
+        try:
+            self._relay_read(relay_number)
+        except BrokenPipeError:
+            self.reconnect()
+            self._relay_read(relay_number)
+
+    def _relay_read(self, relay_number):
         """Reads and returns the state of the relay"""
-        self.telnet_obj.write(b"relay read " + str(relay_number).encode("ascii") + b"\r\n")
-        time.sleep(1)
-        response = self.telnet_obj.read_eager()
-        readable_response = re.split(br'[&>]', response)[0].decode()
-        print("\nRelay read", relay_number, ":", readable_response)
+        logger.info('Reading relay state: %s', relay_number)
+        readable_response = self._send_command_fetch_response(f'relay read {relay_number}\r\n')
+        logger.info('Command Response: [%s]', readable_response)
         return readable_response
+
+    def _send_command_fetch_response(self, command):
+        self.telnet_obj.write(command.encode())
+        time.sleep(1)
+        response = self.telnet_obj.read_eager().decode()
+        return re.split(r'[&>]', response)[0]

@@ -76,11 +76,14 @@ class Tracker:
         return max(current_zone_change_point - self.gallons_used, 0)
 
     def change_zones(self):
-        logger.warning('Changing Zones, moving from zone %d to zone %d', self.current_zone, self.current_zone + 1)
+        """Change zones to the next in the list"""
+        old_zone_index = self.current_zone
+        new_zone_index = self.current_zone + 1
+        logger.warning('Changing Zones, moving from zone %d to zone %d', old_zone_index, new_zone_index)
         logger.warning('%d gallons left', self.gallons_allowed - self.gallons_used)
-        self.numato.relay_off(self.zones_used[self.current_zone])
         self.current_zone += 1
-        self.numato.relay_on(self.zones_used[self.current_zone])
+        self.numato.relay_on(self.zones_used[new_zone_index])
+        self.numato.relay_off(self.zones_used[old_zone_index])
 
 
 tracker = Tracker(TURN_GALLONS_ALLOC, ZONES_USED)
