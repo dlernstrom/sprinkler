@@ -117,5 +117,5 @@ class Numato:
     def _send_command_fetch_response(self, command):
         self.telnet_obj.write(command.encode())
         time.sleep(1)
-        response = self.telnet_obj.read_eager().decode()
+        response = self.telnet_obj.read_eager().decode().strip()
         return re.split(r'[&>]', response)[0]
