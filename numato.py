@@ -4,24 +4,19 @@ import telnetlib
 import time
 import re
 
+from constants import NUMATO_IP, NUMATO_USER, NUMATO_PASS
+from exceptions import NumatoError, LoginError
+
 logger = logging.getLogger(__name__)
 
 
-class NumatoError(Exception):
-    """Base class for all Numato thrown errors"""
-
-
-class LoginError(NumatoError):
-    """Thrown when we cannot log into device"""
-
-
 class Numato:
-    def __init__(self, device_ip, username, password):
-        self.device_ip = device_ip
-        self.username = username
-        self.password = password
-        # Create a new TELNET object
-        self.telnet_obj = telnetlib.Telnet(device_ip)
+    def __init__(self):
+        self.device_ip = NUMATO_IP
+        self.username = NUMATO_USER
+        self.password = NUMATO_PASS
+        self.telnet_obj = telnetlib.Telnet(NUMATO_IP)
+        self.connect()
 
     def connect(self):
         """Connect to device with user provided credentials"""
@@ -71,12 +66,12 @@ class Numato:
     def relay_on(self, relay_number):
         """Turns the relay on, reconnecting if necessary"""
         try:
-            self._relay_on(relay_number)
+            self._relay_on_engine(relay_number)
         except BrokenPipeError:
             self.reconnect()
-            self._relay_on(relay_number)
+            self._relay_on_engine(relay_number)
 
-    def _relay_on(self, relay_number):
+    def _relay_on_engine(self, relay_number):
         """Turns the relay on"""
         # relay_number = self.convert_relay_number(relay_number)
         logger.info('Turning relay ON: %s', relay_number)
@@ -87,12 +82,12 @@ class Numato:
     def relay_off(self, relay_number):
         """Turns the relay off, reconnecting if necessary"""
         try:
-            self._relay_off(relay_number)
+            self._relay_off_engine(relay_number)
         except BrokenPipeError:
             self.reconnect()
-            self._relay_off(relay_number)
+            self._relay_off_engine(relay_number)
 
-    def _relay_off(self, relay_number):
+    def _relay_off_engine(self, relay_number):
         """Turns the relay off"""
         logger.info('Turning relay OFF: %s', relay_number)
         readable_response = self._send_command_fetch_response(f'relay off {relay_number}\r\n')
@@ -102,12 +97,12 @@ class Numato:
     def relay_read(self, relay_number):
         """Reads and returns the state of the relay, reconnecting if necessary"""
         try:
-            self._relay_read(relay_number)
+            self._relay_read_engine(relay_number)
         except BrokenPipeError:
             self.reconnect()
-            self._relay_read(relay_number)
+            self._relay_read_engine(relay_number)
 
-    def _relay_read(self, relay_number):
+    def _relay_read_engine(self, relay_number):
         """Reads and returns the state of the relay"""
         logger.info('Reading relay state: %s', relay_number)
         readable_response = self._send_command_fetch_response(f'relay read {relay_number}\r\n')
