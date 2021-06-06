@@ -15,7 +15,21 @@ TURN_GALLONS_ALLOC = MINUTES_ALLOC * GALLONS_PER_MIN_ALLOC
 
 WATERING_TIME_HOURS = 12
 
-ZONES_USED = ['V', 'U', 'T', 'S', 'R', 'Q', 'P', 'O', 'N', 'M']
+ZONES_CREATED = {
+    31: 'Sprinkler 1',  # V
+    30: 'Sprinkler 2',  # U
+    29: 'Park East',  # T
+    28: 'Tardis',  # S
+    27: 'Sprinkler 3',  # R
+    26: 'Park West',  # Q
+    25: 'The Point',  # P
+    24: 'Coop',  # O
+    # 23: 'BAD',  # N
+    22: 'North Corner',  # M
+}
+ZONES_INT_LIST = list(ZONES_CREATED.keys())
+ZONES_USED = [chr(55 + key) for key in ZONES_INT_LIST]
+SIMULTANEOUS_ZONES = 2
 
 LOGGING = {
     'version': 1,

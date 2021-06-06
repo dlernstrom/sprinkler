@@ -3,31 +3,26 @@ import time
 
 from pubsub import pub
 
-from constants import GALLONS_PER_CLICK, TURN_GALLONS_ALLOC, ZONES_USED
-from numato import Numato
+from constants import GALLONS_PER_CLICK, TURN_GALLONS_ALLOC
+from scheduler.scheduler_base import SchedulerBase
 from utils.ui_utils import min_to_time_str
 from water_meter import WaterMeter
 
 logger = logging.getLogger(__name__)
 
 
-class SchedulerGallon:
+class SchedulerGallon(SchedulerBase):
     def __init__(self):
         self.meter = WaterMeter()
-        self.numato = Numato()
-        self.start_time = time.perf_counter()
         self.gallons_used = 0
-        self.zone_count = len(ZONES_USED)
-        self.current_zone = 0
         self.gallons_per_zone = TURN_GALLONS_ALLOC / self.zone_count
+        super().__init__()
 
-        self.numato.relay_on(ZONES_USED[self.current_zone])
         logger.warning('We get to water for %d gallons this turn', TURN_GALLONS_ALLOC)
         pub.subscribe(self.record_event, 'meter_event')
 
     def shutdown(self):
-        self.numato.relay_off(ZONES_USED[self.current_zone])
-        self.numato.shutdown()
+        super().shutdown()
         pub.unsubscribe(self.record_event, 'meter_event')
 
     @property
@@ -60,11 +55,5 @@ class SchedulerGallon:
         return max(current_zone_change_point - self.gallons_used, 0)
 
     def change_zones(self):
-        """Change zones to the next in the list"""
-        old_zone_index = self.current_zone
-        new_zone_index = self.current_zone + 1
-        logger.warning('Changing Zones, moving from zone %d to zone %d', old_zone_index, new_zone_index)
+        super().change_zones()
         logger.warning('%d gallons left', TURN_GALLONS_ALLOC - self.gallons_used)
-        self.current_zone += 1
-        self.numato.relay_on(ZONES_USED[new_zone_index])
-        self.numato.relay_off(ZONES_USED[old_zone_index])

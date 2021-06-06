@@ -2,26 +2,17 @@ import logging
 import time
 
 from constants import ZONES_USED, WATERING_TIME_HOURS
-from numato import Numato
+from scheduler.scheduler_base import SchedulerBase
 
 logger = logging.getLogger(__name__)
 
 
-class SchedulerTime:
+class SchedulerTime(SchedulerBase):
     def __init__(self):
-        self.numato = Numato()
-        self.start_time = time.perf_counter()
-        self.zone_start = self.start_time
-        self.zone_count = len(ZONES_USED)
-        self.current_zone = 0
-
-        self.seconds_per_zone = 360.0 * WATERING_TIME_HOURS / self.zone_count
-        self.numato.relay_on(ZONES_USED[self.current_zone])
+        super().__init__()
+        self.seconds_per_zone = 3600.0 * WATERING_TIME_HOURS / self.zone_count
         logger.warning('We get to water for %d hours', WATERING_TIME_HOURS)
-
-    def shutdown(self):
-        self.numato.relay_off(ZONES_USED[self.current_zone])
-        self.numato.shutdown()
+        logger.warning('Will change zones after %d minutes', self.seconds_per_zone // 60)
 
     @property
     def is_running(self):
@@ -34,14 +25,9 @@ class SchedulerTime:
 
     @property
     def total_elapsed_time(self):
+        """Returns in float minutes"""
         return (time.perf_counter() - self.start_time) / 60.0
 
     def change_zones(self):
-        """Change zones to the next in the list"""
-        old_zone_index = self.current_zone
-        new_zone_index = self.current_zone + 1
-        logger.warning('Changing Zones, moving from zone %d to zone %d', old_zone_index, new_zone_index)
-        logger.warning('%d minutes left', 60.0 * WATERING_TIME_HOURS - self.total_elapsed_time)
-        self.current_zone += 1
-        self.numato.relay_on(ZONES_USED[new_zone_index])
-        self.numato.relay_off(ZONES_USED[old_zone_index])
+        super().change_zones()
+        logger.warning('%d minutes left', int(60.0 * WATERING_TIME_HOURS - self.total_elapsed_time))
